@@ -1,6 +1,6 @@
 module Sequenced
   class Generator
-    attr_reader :record, :scope, :column, :start_at, :skip
+    attr_reader :record, :scope, :column, :start_at, :skip, :generator_model, :generator_column
 
     def initialize(record, options = {})
       @record = record
@@ -8,6 +8,8 @@ module Sequenced
       @column = (options[:column] || :sequential_id).to_sym
       @start_at = options[:start_at] || 1
       @skip = options[:skip]
+      @generator_model = options[:generator_model]
+      @generator_column = (options[:generator_column] || :account_id).to_sym
     end
 
     def set
@@ -23,8 +25,15 @@ module Sequenced
     end
 
     def next_id
-      next_id_in_sequence.tap do |id|
-        id += 1 until unique?(id)
+      if @generator_model
+        generator = @generator_model.where("#{@generator_column} = #{record.send(@generator_column)}").lock(true).first
+        generator.sequential_id += 1
+        generator.save
+        generator.sequential_id
+      else
+        next_id_in_sequence.tap do |id|
+          id += 1 until unique?(id)
+        end
       end
     end
 
