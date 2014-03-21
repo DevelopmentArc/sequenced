@@ -26,7 +26,7 @@ module Sequenced
 
     def next_id
       if @generator_model
-        generator = @generator_model.where("#{@generator_column} = #{record.send(@generator_column)}").lock(true).first
+        generator = find_generator
         generator.sequential_id += 1
         generator.save
         generator.sequential_id
@@ -73,6 +73,18 @@ module Sequenced
 
     def max(*values)
       values.to_a.max
+    end
+
+    def find_generator
+      generator = @generator_model.where("#{@generator_column} = #{record.send(@generator_column)}").lock(true).first
+      if generator.nil?
+        generator = @generator_model.new
+        generator.send("#{@generator_column}=", record.send(@generator_column))
+        generator.sequential_id = 0
+        generator.save
+        generator.lock!
+      end
+      generator
     end
 
   end
