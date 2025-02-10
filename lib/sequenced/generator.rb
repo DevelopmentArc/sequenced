@@ -76,7 +76,7 @@ module Sequenced
     end
 
     def find_generator
-      generator = @generator_model.where("#{@generator_column} = #{record.send(@generator_column)}").lock(true).first
+      generator = @generator_model.where("#{@generator_column} = #{record.send(@generator_column)}").lock("FOR UPDATE").first
       if generator.nil?
         generator = @generator_model.new
         generator.send("#{@generator_column}=", record.send(@generator_column))
